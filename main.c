@@ -119,7 +119,7 @@ static int enum_frame_formats(int dev)
 }
 
 #ifdef LMAA2000
-Example 1-9. Changing controls
+//Example 1-9. Changing controls
 
 struct v4l2_queryctrl queryctrl;
 struct v4l2_control control;
@@ -174,6 +174,27 @@ ioctl (fd, VIDIOC_S_CTRL, &control);
 
 #endif
 
+static void v4l2_queryctrlToSring(struct v4l2_queryctrl *qc)
+{
+
+  printf("name: %s\n",qc->name);
+
+  printf("flags:\n");
+  if(qc->flags&V4L2_CTRL_FLAG_DISABLED)
+    printf("V4L2_CTRL_FLAG_DISABLED\n");
+  if(qc->flags&V4L2_CTRL_FLAG_GRABBED)
+   printf("V4L2_CTRL_FLAG_GRABBED\n");    
+  if(qc->flags&V4L2_CTRL_FLAG_READ_ONLY)
+   printf("V4L2_CTRL_FLAG_READ_ONLY\n");
+  if(qc->flags&V4L2_CTRL_FLAG_UPDATE)
+   printf("V4L2_CTRL_FLAG_UPDATE\n");
+  if(qc->flags&V4L2_CTRL_FLAG_INACTIVE)
+   printf("V4L2_CTRL_FLAG_INACTIVE\n");
+  if(qc->flags&V4L2_CTRL_FLAG_SLIDER)
+   printf("V4L2_CTRL_FLAG_SLIDER\n");
+
+}
+
 
 static struct v4l2_queryctrl queryctrl;
 static struct v4l2_querymenu querymenu;
@@ -200,6 +221,7 @@ static int enumerate_menu (int fd)
 
 static int EnumeratingControls(int fd)
 {  
+  printf("--Begin EnumeratingControls\n");
   memset (&queryctrl, 0, sizeof (queryctrl));
   
   for (queryctrl.id = V4L2_CID_BASE;
@@ -210,6 +232,7 @@ static int EnumeratingControls(int fd)
 	continue;
       
       printf ("Control %s\n", queryctrl.name);
+      //v4l2_queryctrlToSring(&queryctrl);
       
       if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
 	enumerate_menu (fd);
@@ -240,6 +263,7 @@ static int EnumeratingControls(int fd)
       return -1;
     }
   }
+  printf("--End EnumeratingControls\n");
   return 0;
 }
 
@@ -326,7 +350,7 @@ static int openDevice(char * devname)
   int fd;
   int index;
   struct v4l2_input input;
-
+  printf("--Begin openDevice\n");
    if ((fd = open(devname, O_RDWR)) == -1) {
 	perror("ERROR opening V4L interface \n");
 	return -1;
@@ -345,32 +369,142 @@ if (-1 == ioctl (fd, VIDIOC_ENUMINPUT, &input)) {
         return -1;
 }
 
-printf ("Current input: %s\n", input.name);
-printf ("Current v4l2_std_id: %i / 2 = Camera\n", input.std);
-printf ("Current status: %x\n", input.status);
-printf ("Current type: %x\n", input.type);
-printf ("Current audioset: %x\n", input.audioset);
-printf ("Current tuner: %x\n", input.tuner);
-
-  return fd;
+ printf ("Current input: %s\n", input.name);
+ printf ("Current v4l2_std_id: %i / 2 = Camera\n", input.std);
+ printf ("Current status: %x\n", input.status);
+ printf ("Current type: %x\n", input.type);
+ printf ("Current audioset: %x\n", input.audioset);
+ printf ("Current tuner: %x\n", input.tuner);
+ printf("--End openDevice\n");
+ return fd;
 }
+
+
+static int QueryControl(int fd)
+{
+
+struct v4l2_queryctrl queryctrl;
+struct v4l2_querymenu querymenu;
+
+printf("Funktion QueryControl:\n");
+
+memset (&queryctrl, 0, sizeof (queryctrl));
+
+for (queryctrl.id = V4L2_CID_BASE;
+     queryctrl.id < V4L2_CID_LASTP1;
+     queryctrl.id++) {
+        if (0 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+                if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+                        continue;
+
+                printf ("Control %s\n", queryctrl.name);
+
+                if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+                        enumerate_menu (fd);
+        } else {
+                if (errno == EINVAL)
+                        continue;
+
+                perror ("VIDIOC_QUERYCTRL");
+                return -1;
+        }
+}
+
+for (queryctrl.id = V4L2_CID_PRIVATE_BASE;;
+     queryctrl.id++) {
+        if (0 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+                if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+                        continue;
+
+                printf ("Control %s\n", queryctrl.name);
+
+                if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+                        enumerate_menu (fd);
+        } else {
+                if (errno == EINVAL)
+                        break;
+
+                perror ("VIDIOC_QUERYCTRL");
+                return -1;
+        }
+}
+ return 0;
+}
+
+int setWhiteBalanceTempAuto(int fd,int bWert)
+{
+  struct v4l2_queryctrl queryctrl;
+  struct v4l2_control control;
+  memset (&queryctrl, 0, sizeof (queryctrl));
+  queryctrl.id = V4L2_CID_AUTO_WHITE_BALANCE;
+  
+if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+  if (errno != EINVAL) {
+    perror ("VIDIOC_QUERYCTRL");
+    return -1;
+  } else {
+    printf ("V4L2_CID_AUTO_WHITE_BALANCE is not supported\n");
+  }
+ } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+  printf ("V4L2_CID_AUTO_WHITE_BALANCE is not supported (disabled)\n");
+ } else {
+  memset (&control, 0, sizeof (control));
+  control.id = V4L2_CID_AUTO_WHITE_BALANCE;
+  if(bWert)
+    control.value = 1;
+  else
+    control.value = 0;
+  
+  if (-1 == ioctl (fd, VIDIOC_S_CTRL, &control)) {
+    perror ("VIDIOC_S_CTRL for V4L2_CID_AUTO_WHITE_BALANCE failed\n");
+    return -1;
+  }
+ }
+ return 0;
+}
+
+int getWhiteBalanceTempAuto(int fd)
+{
+  struct v4l2_queryctrl queryctrl;
+  struct v4l2_control control;
+  memset (&control, 0, sizeof (control));
+  control.id = V4L2_CID_AUTO_WHITE_BALANCE;
+  
+  if (0 == ioctl (fd, VIDIOC_G_CTRL, &control))
+    {
+      return control.value;
+    }
+  else
+    {
+      return -1;
+    }
+ }
 
 int main (int argi , char ** args)
 {
 
   int fd =0;
-
-  printf("huhu\n");
-
-  fd =  openDevice("/dev/video0");
+  
+  if(argi==2)
+    fd = openDevice("/dev/video1");
+  else
+    fd =  openDevice("/dev/video0");
   if(fd<0)
     {
       printf("error openDevice");
+      return -1;
     }
 
-  printf("VideoStandardInfo(int fd): %i\n",VideoStandardInfo(fd));
-  printf("ListVideoStandards(int fd): %i\n",ListVideoStandards(fd));
-  printf("EnumeratingControls(int fd): %i\n",EnumeratingControls(fd));
-  printf("enum_frame_formats(int dev): %i\n",enum_frame_formats(fd));
+  printf("getWhiteBalanceTempAuto : %i\n",getWhiteBalanceTempAuto(fd));
+  printf("setWhiteBalanceTempAuto : %i\n",setWhiteBalanceTempAuto(fd,0));
+  printf("getWhiteBalanceTempAuto : %i\n",getWhiteBalanceTempAuto(fd));
+  
+  //printf("##VideoStandardInfo(int fd): %i\n",VideoStandardInfo(fd));
+  //printf("##ListVideoStandards(int fd): %i\n",ListVideoStandards(fd));
+  printf("EnumeratinControls returned %i\n",EnumeratingControls(fd));
+  //printf("##enum_frame_formats(int dev): %i\n",enum_frame_formats(fd));
+
+  //enumerate_menu (fd);
+  //QueryControl(fd);
   return 0;
 }

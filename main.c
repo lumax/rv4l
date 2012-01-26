@@ -10,6 +10,8 @@
 #include <sys/ioctl.h>
 #include <linux/videodev.h>
 
+#include "V4L2_utils.h"
+
 static int enum_frame_intervals(int dev, __u32 pixfmt, __u32 width, __u32 height)
 {
 	int ret;
@@ -431,6 +433,22 @@ for (queryctrl.id = V4L2_CID_PRIVATE_BASE;;
  return 0;
 }
 
+int doWhiteBalance(int fd)
+{
+  struct v4l2_control control;
+
+  memset (&control, 0, sizeof (control));
+  control.id = V4L2_CID_DO_WHITE_BALANCE;
+  control.value = 0;
+
+  if (-1 == ioctl (fd, VIDIOC_S_CTRL, &control))
+    {
+      perror ("VIDIOC_S_CTRL for V4L2_CID_DO_WHITE_BALANCE failed\n");
+      return -1;
+    }
+  return 0;
+} 
+
 int setWhiteBalanceTempAuto(int fd,int bWert)
 {
   struct v4l2_queryctrl queryctrl;
@@ -463,9 +481,10 @@ if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) {
  return 0;
 }
 
+
 int getWhiteBalanceTempAuto(int fd)
 {
-  struct v4l2_queryctrl queryctrl;
+  //struct v4l2_queryctrl queryctrl;
   struct v4l2_control control;
   memset (&control, 0, sizeof (control));
   control.id = V4L2_CID_AUTO_WHITE_BALANCE;
@@ -484,6 +503,9 @@ int main (int argi , char ** args)
 {
 
   int fd =0;
+  int value = 0;
+  int ret = 0;
+  struct v4l2_queryctrl queryctrl;
   
   if(argi==2)
     fd = openDevice("/dev/video1");
@@ -495,10 +517,45 @@ int main (int argi , char ** args)
       return -1;
     }
 
+  printf("Hallo Maximilian!\n");
+
+  //printf("setWhiteBalanceTempAuto : %i\n",setWhiteBalanceTempAuto(fd,0));
   printf("getWhiteBalanceTempAuto : %i\n",getWhiteBalanceTempAuto(fd));
-  printf("setWhiteBalanceTempAuto : %i\n",setWhiteBalanceTempAuto(fd,0));
+  /*printf("setWhiteBalanceTempAuto : %i\n",setWhiteBalanceTempAuto(fd,0));
   printf("getWhiteBalanceTempAuto : %i\n",getWhiteBalanceTempAuto(fd));
-  
+  */
+  if(!getV4L2QueryCtrl(fd,V4L2_CID_GAMMA,&queryctrl))
+    {
+      printf("V4L2_CID_GAMMA : \n");
+      printf("\tminmum : %i\n",queryctrl.minimum);
+      printf("\tmaximum : %i\n",queryctrl.maximum);
+      printf("\tstep : %i\n",queryctrl.step);
+    }
+  if(!getV4L2QueryCtrl(fd,V4L2_CID_WHITE_BALANCE_TEMPERATURE,&queryctrl))
+    {
+      printf("V4L2_CID_WHITE_BALANCE_TEMPERATURE : \n");
+      printf("\tminmum : %i\n",queryctrl.minimum);
+      printf("\tmaximum : %i\n",queryctrl.maximum);
+      printf("\tstep : %i\n",queryctrl.step);
+    }
+
+  //printf("doWhiteBalance(int fd) returns %i\n",doWhiteBalance(fd));
+
+  ret = getV4L2_Value(fd,V4L2_CID_WHITE_BALANCE_TEMPERATURE,&value);
+  printf("V4L2_CID_WHITE_BALANCE_TEMPERATURE = %i return = %i\n",value,ret);
+
+  ret = getV4L2_Value(fd,V4L2_CID_GAMMA,&value);
+  printf("V4L2_CID_GAMMA = %i return = %i\n",value,ret);
+
+  //  ret = setV4L2_Value(fd,V4L2_CID_WHITE_BALANCE_TEMPERATURE,2800);
+  //printf("set V4L2_CID_WHITE_BALANCE_TEMPERATURE return = %i\n",ret);
+
+  /*ret = setV4L2_Value(fd,V4L2_CID_GAMMA,100);
+  printf("set V4L2_CID_GAMMA return = %i\n",ret);
+
+  ret = getV4L2_Value(fd,V4L2_CID_GAMMA,&value);
+  printf("V4L2_CID_GAMMA = %i return = %i\n",value,ret);*/
+
   //printf("##VideoStandardInfo(int fd): %i\n",VideoStandardInfo(fd));
   //printf("##ListVideoStandards(int fd): %i\n",ListVideoStandards(fd));
   printf("EnumeratinControls returned %i\n",EnumeratingControls(fd));

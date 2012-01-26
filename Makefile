@@ -27,7 +27,7 @@ CFLAGS+=-g -c -Wall
 
 LDFLAGS+=
 
-OBJS = main.o 
+OBJS = main.o V4L2_utils.o
 
 
 include $(MAKE_DIR)/global.mak

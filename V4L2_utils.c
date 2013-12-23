@@ -2,7 +2,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-#include <linux/videodev.h>
+#include "videodev.h"
 
 int getV4L2QueryCtrl(int fd,int id,struct v4l2_queryctrl * pqueryctrl)
 {

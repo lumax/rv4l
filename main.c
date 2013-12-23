@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-#include <linux/videodev.h>
+#include "videodev.h"
 
 #include "V4L2_utils.h"
 

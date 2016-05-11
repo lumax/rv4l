@@ -6,7 +6,7 @@
 
 int getV4L2QueryCtrl(int fd,int id,struct v4l2_queryctrl * pqueryctrl)
 {
-  memset (pqueryctrl, 0, sizeof (pqueryctrl));
+  memset (pqueryctrl, 0, sizeof (struct v4l2_queryctrl));
   pqueryctrl->id = id;
   if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, pqueryctrl))
     {
